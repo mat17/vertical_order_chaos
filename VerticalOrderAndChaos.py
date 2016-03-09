@@ -4,7 +4,7 @@
 ## - vse crke z malo (vstolpec)
 ## - zacetki besed z veliko (vstaviVStolpec)
 
-import tkinter
+import tkinter as tk
 
 class Igra():
     def __init__(self):
@@ -30,7 +30,7 @@ class Igra():
         """Kliče stolpec, ki nas zanima."""
         return [self.igralnoPolje[i][j] for i in range(6)]
                     
-    def stanje_igre(self):
+    def stanjeIgre(self):
         
         diagonalePolja= [[(0,0),(1,1),(2,2),(3,3),(4,4),(5,5)],
                         [(0,5),(1,4),(2,3),(3,2),(4,1),(5,0)],
@@ -71,7 +71,7 @@ class Igra():
 
 class MiniMax():
 #moreva se se odlocit ce bo minimax imel svoje polje oziroma kje ga bo urejal.
-
+#problem 1,0,0,2,0,0,1 
     
     def vrednostPogoja(self,pogoj):
         """poisce vrednost vrstice/diagonale/stolpca, zaenkrat se zelo ogabna verzija"""
@@ -149,7 +149,69 @@ class MiniMax():
         
         
 
+class GUI():
+    def __init__(self,master,globina):
+        
+        #privzeta velikost polja
+        VelikostPolja=30
+        TAG_OKVIR='okvir'
 
+        #Glavni menu
+        menu = tk.Menu(master)
+        master.config(menu=menu)
+
+        menu_igra = tk.Menu(menu)
+        menu.add_cascade(label="Igra", menu=menu_igra)
+
+        menu_uredu=tk.Menu(menu)
+        menu.add_cascade(label="Uredi", menu=menu_uredi)
+
+        #podmenu za izbiro igre
+        menu_igra.add_command(label="Igraj proti prijatelju")
+        menu_igra.add_command(label="Igraj kot Order")
+        menu_igra.add_command(label="Igraj kot Chaos")
+        menu_igra.add_command(label="Simulacija igre")
+
+        #podmenu za urejanje velikosti okna
+        menu_uredi.add_command(label="Majhno okno",command=lambda:self.spremeniVelikost(15))
+        menu_uredi.add_command(label="Srednje okno",command=lambda:self.spremeniVelikost(30))
+        menu_uredi.add_command(label="Veliko okno",command=lambda:self.spremeniVelikost(50))
+        
+
+
+        #Stanje igre(kdo je na vrsti, kdo je zmagal,...)
+        self.napis = tk.StringVar(master, value="blah")
+        tk.Label(master, textvariable=self.napis).grid(row=0, column=0)
+
+        #Igralno območje
+        self.plosca = tk.Canvas(master, width=10*VelikostPolja, height=7*VelikostPolja)
+
+    def narisiCrte(self):
+        """Narise crte na igralnem obmocju"""
+        #self.plosca.delete(Gui.TAG_OKVIR) ali je to sploh potrebno?
+        d=GUI.VelikostPolja
+        #navpicne crte
+        self.plosca.create_line(0*d,0*d,0*d,7*d,tag=Gui.TAG_OKVIR)
+        self.plosca.create_line(1*d,0*d,1*d,7*d,tag=Gui.TAG_OKVIR)
+        self.plosca.create_line(2*d,0*d,2*d,7*d,tag=Gui.TAG_OKVIR)
+        self.plosca.create_line(3*d,0*d,3*d,7*d,tag=Gui.TAG_OKVIR)
+        self.plosca.create_line(4*d,0*d,4*d,7*d,tag=Gui.TAG_OKVIR)
+        self.plosca.create_line(5*d,0*d,5*d,7*d,tag=Gui.TAG_OKVIR)
+        self.plosca.create_line(6*d,0*d,6*d,7*d,tag=Gui.TAG_OKVIR)
+        self.plosca.create_line(7*d,0*d,7*d,7*d,tag=Gui.TAG_OKVIR)
+        #vodoravne crte
+        self.plosca.create_line(0*d,0*d,8*d,0*d,tag=Gui.TAG_OKVIR)
+        self.plosca.create_line(0*d,1*d,8*d,1*d,tag=Gui.TAG_OKVIR)
+        self.plosca.create_line(0*d,2*d,8*d,2*d,tag=Gui.TAG_OKVIR)
+        self.plosca.create_line(0*d,3*d,8*d,3*d,tag=Gui.TAG_OKVIR)
+        self.plosca.create_line(0*d,4*d,8*d,4*d,tag=Gui.TAG_OKVIR)
+        self.plosca.create_line(0*d,5*d,8*d,5*d,tag=Gui.TAG_OKVIR)
+        self.plosca.create_line(0*d,6*d,8*d,6*d,tag=Gui.TAG_OKVIR)
+
+    def spremeniVelikost(self,velikost):
+        """spremeni velikost polja"""                       
+        self.VelikostPolja=velikost
+    
 
 
 mini=MiniMax()
@@ -162,7 +224,7 @@ igra=Igra()
 
 
 polje=[[0, 1, 2, 0, 1, 2, 0],
-        [0, 2, 2, 0, 1, 1, 1],
+        [0, 2, 2, 0, 1, 1, 0],
         [0, 1, 1, 0, 2, 1, 0],
         [0, 1, 2, 0, 1, 2, 0],
         [0, 1, 1, 1, 2, 1, 0],
