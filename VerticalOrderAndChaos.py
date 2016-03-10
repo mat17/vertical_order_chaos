@@ -1,9 +1,3 @@
-##predlagam poenotenje nacina poimenovanja funkcij
-##zdaj imava prevec (3) nacinov
-##- s podcrtajem (stanje_igre)
-## - vse crke z malo (vstolpec)
-## - zacetki besed z veliko (vstaviVStolpec)
-
 import tkinter as tk
 
 class Igra():
@@ -47,11 +41,29 @@ class Igra():
                 (i,j)=e
                 diagonala.append(self.igralnoPolje[i][j])
             diagonale.append(diagonala)
+        kombinacijeDiagonale=[]
+        for dia in diagonale:
+            if len(dia)==6:
+                kombinacijeDiagonale+=[dia[:5]]+[dia[1:]]
+            else:
+                kombinacijeDiagonale+=[dia]
+                
 
         stolpci=[self.vstolpec(j) for j in range(7)]
+        kombinacijeStolpci=[]
+        for s in stolpci:
+            kombinacijeStolpci+=[s[:5]]+[s[1:]]
+        
         vrstice=[self.igralnoPolje[i] for i in range(6)]
-
+        kombinacijeVrstice=[]
+        for v in vrstice:
+            kombinacijeVrstice+=[v[:5]]+[v[1:6]]+[v[2:]]
+        
         pogoji=diagonale+stolpci+vrstice
+##pogoji verjetno niso vec potrebni, ampak ne vem, kaj bova naredila z vsemi
+##funkcijami, ki se ukvarjajo s pogoji. zato jih bom zaenkrat pustil pri miru.
+##konec koncev so zaenkrat uporabni za "ta grd" minimax
+        kombinacije=kombinacijeDiagonale+kombinacijeStolpci+kombinacijeVrstice
 
         for pogoj in pogoji:
             counter=0
@@ -60,13 +72,11 @@ class Igra():
                 if zeton==tip:
                     counter+=1
                     if counter==5 and zeton is not 0:
-##sem dodal "and zeton is not 0", da ne kaze praznih "pogojev" kakor zmage
                         print("ZMAGA")
                 else:
                     counter=1
-##prej je blo counter=0 in ni blo dobro, ker je ignoriralo prvi zeton novega tipa :)
                     tip=zeton 
-        return print(diagonale)
+        return print(kombinacije)
 
 
 class MiniMax():
