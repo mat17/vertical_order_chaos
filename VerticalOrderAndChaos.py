@@ -1,4 +1,4 @@
-import tkinter as tk
+import Tkinter as tk
 
 class Igra():
     def __init__(self):
@@ -7,12 +7,12 @@ class Igra():
                            [0,0,0,0,0,0,0],
                            [0,0,0,0,0,0,0],
                            [0,0,0,0,0,0,0],
-                           [0,0,0,0,0,0,0]]
+                           [1,1,1,1,1,0,0]]
         """Tip je barva zetona."""             
         self.tip=0
 
     def vstaviVPolje(self,stolpec):
-        """Število stolpca od 0-6."""
+        """Stevilo stolpca od 0-6."""
         vrstica=5
         while vrstica>=0:
             if self.igralnoPolje[vrstica][stolpec]==0:
@@ -21,7 +21,7 @@ class Igra():
             else: vrstica-=1
 
     def vstolpec(self,j):
-        """Kliče stolpec, ki nas zanima."""
+        """Naredi seznam stolpca."""
         return [self.igralnoPolje[i][j] for i in range(6)]
                     
     def stanjeIgre(self):
@@ -65,18 +65,11 @@ class Igra():
 ##konec koncev so zaenkrat uporabni za "ta grd" minimax
         kombinacije=kombinacijeDiagonale+kombinacijeStolpci+kombinacijeVrstice
 
-        for pogoj in pogoji:
-            counter=0
-            tip=pogoj[0]
-            for zeton in pogoj:
-                if zeton==tip:
-                    counter+=1
-                    if counter==5 and zeton is not 0:
-                        print("ZMAGA")
-                else:
-                    counter=1
-                    tip=zeton 
-        return print(kombinacije)
+        for kombinacija in kombinacije:
+            tip=kombinacija[0]
+            if len(list(set(kombinacija)))==1 and tip!=0:
+                print("Zmaga!")
+
 
 
 class MiniMax():
@@ -85,45 +78,23 @@ class MiniMax():
     
     def vrednostPogoja(self,pogoj):
         """poisce vrednost vrstice/diagonale/stolpca, zaenkrat se zelo ogabna verzija"""
-        MaxCounter=0
-        counter=0
-        tip=pogoj[0]
-        for zeton in pogoj:
-            if zeton==0:
-                """stevilo praznih polj v nekem zaporedju bo shranjeno v decimalki"""
-                counter+=0.1
-                if counter>MaxCounter:
-                    MaxCounter=counter
-            elif zeton!=tip:
-                if tip==0:
-                    """ce se slucajno zgodi da je nas trenuten tip 0,
-                    bo vseeno kateri zeton je, zato se counter poveca za 1, tip pa nastavimo na trenuten zeton"""
-                    counter+=1
-                    tip=zeton
-                    if counter>MaxCounter:
-                        MaxCounter=counter
-                else:
-                    if counter>MaxCounter:
-                        MaxCounter=counter
-                    else:
-                        counter=1
-                        tip=zeton
-            elif zeton==tip:
-                counter+=1
-                if counter>MaxCounter:
-                    MaxCounter=counter
-                if counter>=5:
-                    MaxCounter=counter*10
-                    
-        """c=število prostih mest v najboljsem "zaporedju" """
-        c=10*(MaxCounter%1)
-        """če je več kot 5 pomeni da imamo se moznost za 5 v vrsto"""
-        if MaxCounter + c>=5:
-            return MaxCounter//1 * 100 + c*10
-        """če je <5 pomeni da nemoremo vec dobiti 5 v vrsto"""
-        return 0
-
-
+        if len(list(set(kombinacija)))==1 and tip!=0:
+            return 4400000
+        elif len(list(set(kombinacija)))==2 and 0 not in kombinacija:
+            return -100000
+        elif len(list(set(kombinacija)))==2:
+            return 10*abs(sum(kombinacija))
+        elif len(list(set(kombinacija)))==3:
+            return -100000
+        
+    def vstaviVPolje(self,stolpec):
+        """Stevilo stolpca od 0-6."""
+        vrstica=5
+        while vrstica>=0:
+            if self.igralnoPolje[vrstica][stolpec]==0:
+                self.igralnoPolje[vrstica][stolpec]=self.tip
+                break
+            else: vrstica-=1        
         
     def vstolpec(self,polje,j):
         """Naredi seznam stolpca"""
@@ -141,24 +112,77 @@ class MiniMax():
                         [(1,1),(2,2),(3,3),(4,4),(5,5)],
                         [(0,4),(1,3),(2,2),(3,1),(4,0)],
                         [(1,6),(2,5),(3,4),(4,3),(5,2)]]
-        vrednost=0
         diagonale=[]            
         for d in diagonalePolja:
             diagonala=[]
             for e in d:
                 (i,j)=e
-                diagonala.append(polje[i][j])
+                diagonala.append(self.igralnoPolje[i][j])
             diagonale.append(diagonala)
+        kombinacijeDiagonale=[]
+        for dia in diagonale:
+            if len(dia)==6:
+                kombinacijeDiagonale+=[dia[:5]]+[dia[1:]]
+            else:
+                kombinacijeDiagonale+=[dia]
+                
 
-        stolpci=[self.vstolpec(polje,j) for j in range(7)]
-        vrstice=[polje[i] for i in range(6)]
+        stolpci=[self.vstolpec(j) for j in range(7)]
+        kombinacijeStolpci=[]
+        for s in stolpci:
+            kombinacijeStolpci+=[s[:5]]+[s[1:]]
+        
+        vrstice=[self.igralnoPolje[i] for i in range(6)]
+        kombinacijeVrstice=[]
+        for v in vrstice:
+            kombinacijeVrstice+=[v[:5]]+[v[1:6]]+[v[2:]]
+        
+        kombinacije=kombinacijeDiagonale+kombinacijeStolpci+kombinacijeVrstice
+        
+        return sum([self.vrednostPogoja(kombinacija) for kombinacija in kombinacije])
 
-        pogoji=diagonale+stolpci+vrstice
-        
-        return sum([self.vrednostPogoja(pogoj) for pogoj in pogoji])
-        
-        
 
+    def veljavnePoteze(self,polje):
+        veljavne=[]
+        for i in range(7):
+            if polje[0][i]==0:
+                veljavne.append(i)
+        return veljavne        
+
+    def razveljaviPotezo(self,polje,stolpec):
+        vrstica=0
+        while 0<6:
+            if self.igralnoPolje[vrstica][stolpec]!=0:
+                self.igralnoPolje[vrstica][stolpec]=0
+                break
+            else: vrstica+=1
+            
+        
+            
+    def najboljsaPoteza(self,polje):
+        najvisjaVrednost=-100000000000000
+        najboljsaPoteza=-5
+        for i in veljavnePoteze(polje):
+            self.vstaviVPolje(i)
+            #bomo tle ze dali parameter za tezavnost ako bomo zeleli
+            poteza=minimax(polje,3,True)
+            if poteza>najboljsaPoteza:
+                najboljsaPoteza=poteza
+            self.razveljaviPotezo(polje,i)    
+        
+    def minimax(self,veja,globina,maxPlayer):
+        if globina==0 or len(veljavnePoteze(veja))==0:
+            return self.vrednostPolja(veja)
+        if maxPlayer:
+            value=[]
+            for i in veljavnePoteze(veja):
+                bestValue.append(self.minimax(self,self.vstaviVPolje(veja),globina-1,False))
+            return max(value)    
+
+
+
+
+        
 class GUI():
     def __init__(self,master,globina):
         
