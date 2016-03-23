@@ -1,4 +1,8 @@
-import Tkinter as tk
+import tkinter as tk
+import copy
+
+
+
 
 class Igra():
     def __init__(self):
@@ -7,7 +11,7 @@ class Igra():
                            [0,0,0,0,0,0,0],
                            [0,0,0,0,0,0,0],
                            [0,0,0,0,0,0,0],
-                           [1,1,1,1,1,0,0]]
+                           [0,0,0,0,0,0,0]]
         """Tip je barva zetona."""             
         self.tip=0
 
@@ -58,11 +62,7 @@ class Igra():
         kombinacijeVrstice=[]
         for v in vrstice:
             kombinacijeVrstice+=[v[:5]]+[v[1:6]]+[v[2:]]
-        
-        pogoji=diagonale+stolpci+vrstice
-##pogoji verjetno niso vec potrebni, ampak ne vem, kaj bova naredila z vsemi
-##funkcijami, ki se ukvarjajo s pogoji. zato jih bom zaenkrat pustil pri miru.
-##konec koncev so zaenkrat uporabni za "ta grd" minimax
+
         kombinacije=kombinacijeDiagonale+kombinacijeStolpci+kombinacijeVrstice
 
         for kombinacija in kombinacije:
@@ -73,28 +73,31 @@ class Igra():
 
 
 class MiniMax():
-#moreva se se odlocit ce bo minimax imel svoje polje oziroma kje ga bo urejal.
-#problem 1,0,0,2,0,0,1 
+
     
-    def vrednostPogoja(self,pogoj):
+    def vrednostPogoja(self,kombinacija):
         """poisce vrednost vrstice/diagonale/stolpca, zaenkrat se zelo ogabna verzija"""
-        if len(list(set(kombinacija)))==1 and tip!=0:
+        l=len(set(kombinacija))
+        if l==1 and 0 not in kombinacija:
             return 4400000
-        elif len(list(set(kombinacija)))==2 and 0 not in kombinacija:
+        elif l==2 and 0 not in kombinacija:
             return -100000
-        elif len(list(set(kombinacija)))==2:
+        elif l==2:
             return 10*abs(sum(kombinacija))
-        elif len(list(set(kombinacija)))==3:
+        elif l==3:
             return -100000
+        else:
+            return 0
         
-    def vstaviVPolje(self,stolpec):
+    def vstaviVPolje(self,polje,stolpec,tip):
         """Stevilo stolpca od 0-6."""
         vrstica=5
         while vrstica>=0:
-            if self.igralnoPolje[vrstica][stolpec]==0:
-                self.igralnoPolje[vrstica][stolpec]=self.tip
+            if polje[vrstica][stolpec]==0:
+                polje[vrstica][stolpec]=tip
                 break
-            else: vrstica-=1        
+            else: vrstica-=1
+        return polje    
         
     def vstolpec(self,polje,j):
         """Naredi seznam stolpca"""
@@ -117,7 +120,7 @@ class MiniMax():
             diagonala=[]
             for e in d:
                 (i,j)=e
-                diagonala.append(self.igralnoPolje[i][j])
+                diagonala.append(polje[i][j])
             diagonale.append(diagonala)
         kombinacijeDiagonale=[]
         for dia in diagonale:
@@ -127,12 +130,12 @@ class MiniMax():
                 kombinacijeDiagonale+=[dia]
                 
 
-        stolpci=[self.vstolpec(j) for j in range(7)]
+        stolpci=[self.vstolpec(polje,j) for j in range(7)]
         kombinacijeStolpci=[]
         for s in stolpci:
             kombinacijeStolpci+=[s[:5]]+[s[1:]]
         
-        vrstice=[self.igralnoPolje[i] for i in range(6)]
+        vrstice=[polje[i] for i in range(6)]
         kombinacijeVrstice=[]
         for v in vrstice:
             kombinacijeVrstice+=[v[:5]]+[v[1:6]]+[v[2:]]
@@ -152,43 +155,79 @@ class MiniMax():
     def razveljaviPotezo(self,polje,stolpec):
         vrstica=0
         while 0<6:
-            if self.igralnoPolje[vrstica][stolpec]!=0:
-                self.igralnoPolje[vrstica][stolpec]=0
+            if polje[vrstica][stolpec]!=0:
+                polje[vrstica][stolpec]=0
                 break
             else: vrstica+=1
             
         
-            
-    def najboljsaPoteza(self,polje):
+          
+    def najboljsaPoteza(self,polje,globina,order=True):
         najvisjaVrednost=-100000000000000
-        najboljsaPoteza=-5
-        for i in veljavnePoteze(polje):
-            self.vstaviVPolje(i)
-            #bomo tle ze dali parameter za tezavnost ako bomo zeleli
-            poteza=minimax(polje,3,True)
-            if poteza>najboljsaPoteza:
-                najboljsaPoteza=poteza
-            self.razveljaviPotezo(polje,i)    
-        
-    def minimax(self,veja,globina,maxPlayer):
-        if globina==0 or len(veljavnePoteze(veja))==0:
+        najboljsaPoteza=[-5,0]
+        for i in self.veljavnePoteze(polje):
+            #poskusi z rdecim zetonom
+            self.vstaviVPolje(polje,i,1)
+            vrednost=self.minimax(polje,globina,order)
+            if vrednost>najvisjaVrednost:
+                najvisjaVrednost=vrednost
+                najboljsaPoteza[0]=i
+                najboljsaPoteza[1]=1
+            self.razveljaviPotezo(polje,i)
+            #poskusi z modrim zetonom
+            self.vstaviVPolje(polje,i,-1)
+            vrednost=self.minimax(polje,globina,order)
+            if vrednost>najvisjaVrednost:
+                najboljsaPoteza[0]=i
+                najboljsaPoteza[1]=-1
+            self.razveljaviPotezo(polje,i)
+        return  najboljsaPoteza
+    
+    #ta je tle za testiranje 
+    def odigraj(self,polje,order=True):
+        najboljsaPoteza=self.najboljsaPoteza(polje,2,order)
+        self.vstaviVPolje(polje,najboljsaPoteza[0],najboljsaPoteza[1])
+        for i in range(6):
+            print(polje[i])
+
+
+
+
+#bova sla do profesorja da malo pohejta nas spaghetti code :D            
+#za zdej naj bo kot da igra order (zato maxplayer=true)       
+    def minimax(self,veja,globina,maxPlayer=True):
+        if globina==0 or len(self.veljavnePoteze(veja))==0:
             return self.vrednostPolja(veja)
-        if maxPlayer:
-            value=[]
-            for i in veljavnePoteze(veja):
-                bestValue.append(self.minimax(self,self.vstaviVPolje(veja),globina-1,False))
-            return max(value)    
+        elif maxPlayer:
+            bestValue=-1000000000
+            for i in self.veljavnePoteze(veja):
+                #proba oba zetona, nas ne zanima kam bi jih igral tako da nima smisla jih shranit
+                veja1=copy.deepcopy(veja)
+                veja2=copy.deepcopy(veja)
+                bestValue=max(self.minimax(self.vstaviVPolje(veja1,i,1),globina-1,False),self.minimax(self.vstaviVPolje(veja2,i,-1),globina-1,False))
+            return bestValue    
+
+        else:
+            bestValue=+1000000000
+            for i in self.veljavnePoteze(veja):
+                veja1=copy.deepcopy(veja)
+                veja2=copy.deepcopy(veja)
+                bestValue=min(self.minimax(self.vstaviVPolje(veja1,i,1),globina-1,True),self.minimax(self.vstaviVPolje(veja2,i,-1),globina-1,True))
+            return bestValue    
 
 
 
 
-        
+  
 class GUI():
-    def __init__(self,master,globina):
+
+    VelikostPolja=50
+    TAG_OKVIR='okvir'
+    
+    def __init__(self,master):
         
         #privzeta velikost polja
-        VelikostPolja=30
-        TAG_OKVIR='okvir'
+        
 
         #Glavni menu
         menu = tk.Menu(master)
@@ -197,14 +236,14 @@ class GUI():
         menu_igra = tk.Menu(menu)
         menu.add_cascade(label="Igra", menu=menu_igra)
 
-        menu_uredu=tk.Menu(menu)
+        menu_uredi=tk.Menu(menu)
         menu.add_cascade(label="Uredi", menu=menu_uredi)
 
         #podmenu za izbiro igre
         menu_igra.add_command(label="Igraj proti prijatelju")
         menu_igra.add_command(label="Igraj kot Order")
         menu_igra.add_command(label="Igraj kot Chaos")
-        menu_igra.add_command(label="Simulacija igre")
+        menu_igra.add_command(label="Simulacija igre",command=lambda:self.narisiZeton(250,250,2))
 
         #podmenu za urejanje velikosti okna
         menu_uredi.add_command(label="Majhno okno",command=lambda:self.spremeniVelikost(15))
@@ -214,52 +253,72 @@ class GUI():
 
 
         #Stanje igre(kdo je na vrsti, kdo je zmagal,...)
-        self.napis = tk.StringVar(master, value="blah")
+        self.napis = tk.StringVar(master, value="Mi smo zmagali")
         tk.Label(master, textvariable=self.napis).grid(row=0, column=0)
 
         #Igralno območje
-        self.plosca = tk.Canvas(master, width=10*VelikostPolja, height=7*VelikostPolja)
+        self.plosca = tk.Canvas(master, width=10*GUI.VelikostPolja, height=7*GUI.VelikostPolja)
+        self.plosca.grid(row=1,column=0)
+        self.narisiCrte()
 
     def narisiCrte(self):
         """Narise crte na igralnem obmocju"""
         #self.plosca.delete(Gui.TAG_OKVIR) ali je to sploh potrebno?
         d=GUI.VelikostPolja
-        #navpicne crte
-        self.plosca.create_line(0*d,0*d,0*d,7*d,tag=Gui.TAG_OKVIR)
-        self.plosca.create_line(1*d,0*d,1*d,7*d,tag=Gui.TAG_OKVIR)
-        self.plosca.create_line(2*d,0*d,2*d,7*d,tag=Gui.TAG_OKVIR)
-        self.plosca.create_line(3*d,0*d,3*d,7*d,tag=Gui.TAG_OKVIR)
-        self.plosca.create_line(4*d,0*d,4*d,7*d,tag=Gui.TAG_OKVIR)
-        self.plosca.create_line(5*d,0*d,5*d,7*d,tag=Gui.TAG_OKVIR)
-        self.plosca.create_line(6*d,0*d,6*d,7*d,tag=Gui.TAG_OKVIR)
-        self.plosca.create_line(7*d,0*d,7*d,7*d,tag=Gui.TAG_OKVIR)
+        #navpicne crte 
+        self.plosca.create_line(1*d,0*d,1*d,6*d,tag=GUI.TAG_OKVIR)
+        self.plosca.create_line(2*d,0*d,2*d,6*d,tag=GUI.TAG_OKVIR)
+        self.plosca.create_line(3*d,0*d,3*d,6*d,tag=GUI.TAG_OKVIR)
+        self.plosca.create_line(4*d,0*d,4*d,6*d,tag=GUI.TAG_OKVIR)
+        self.plosca.create_line(5*d,0*d,5*d,6*d,tag=GUI.TAG_OKVIR)
+        self.plosca.create_line(6*d,0*d,6*d,6*d,tag=GUI.TAG_OKVIR)
+        self.plosca.create_line(7*d,0*d,7*d,6*d,tag=GUI.TAG_OKVIR)
+        self.plosca.create_line(8*d,0*d,8*d,6*d,tag=GUI.TAG_OKVIR)
         #vodoravne crte
-        self.plosca.create_line(0*d,0*d,8*d,0*d,tag=Gui.TAG_OKVIR)
-        self.plosca.create_line(0*d,1*d,8*d,1*d,tag=Gui.TAG_OKVIR)
-        self.plosca.create_line(0*d,2*d,8*d,2*d,tag=Gui.TAG_OKVIR)
-        self.plosca.create_line(0*d,3*d,8*d,3*d,tag=Gui.TAG_OKVIR)
-        self.plosca.create_line(0*d,4*d,8*d,4*d,tag=Gui.TAG_OKVIR)
-        self.plosca.create_line(0*d,5*d,8*d,5*d,tag=Gui.TAG_OKVIR)
-        self.plosca.create_line(0*d,6*d,8*d,6*d,tag=Gui.TAG_OKVIR)
+        self.plosca.create_line(1*d,0*d,8*d,0*d,tag=GUI.TAG_OKVIR)
+        self.plosca.create_line(1*d,1*d,8*d,1*d,tag=GUI.TAG_OKVIR)
+        self.plosca.create_line(1*d,2*d,8*d,2*d,tag=GUI.TAG_OKVIR)
+        self.plosca.create_line(1*d,3*d,8*d,3*d,tag=GUI.TAG_OKVIR)
+        self.plosca.create_line(1*d,4*d,8*d,4*d,tag=GUI.TAG_OKVIR)
+        self.plosca.create_line(1*d,5*d,8*d,5*d,tag=GUI.TAG_OKVIR)
+        self.plosca.create_line(1*d,6*d,8*d,6*d,tag=GUI.TAG_OKVIR)
+        
+        
+        
+        
+   
+    
+    #self.plosca.create_image(3*d+1/2*d,2*d+0.5*d,image=self.moder)
 
+    def narisiZeton(self,x,y,tip):
+        moder=tk.PhotoImage(file="moder_zeton.gif")
+        self.plosca.create_image(x,y,image=moder)
+    
     def spremeniVelikost(self,velikost):
         """spremeni velikost polja"""                       
-        self.VelikostPolja=velikost
-    
+        GUI.VelikostPolja=velikost
+        self.narisiCrte()
 
+
+        
+        
+    
 
 mini=MiniMax()
 
+root=tk.Tk()
+root.title("order and chaos")
 
-
+GUI=GUI(root)
 
 igra=Igra()
 
+root.mainloop()
 
+polje=[[0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0]]
 
-polje=[[0, 1, 2, 0, 1, 2, 0],
-        [0, 2, 2, 0, 1, 1, 0],
-        [0, 1, 1, 0, 2, 1, 0],
-        [0, 1, 2, 0, 1, 2, 0],
-        [0, 1, 1, 1, 2, 1, 0],
-        [1, 2, 1, 1, 2, 1, 1]]
