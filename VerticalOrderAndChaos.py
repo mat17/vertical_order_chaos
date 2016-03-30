@@ -1,6 +1,6 @@
 import tkinter as tk
 import copy
-
+import time
 
 
 
@@ -13,7 +13,7 @@ class Igra():
                            [0,0,0,0,0,0,0],
                            [0,0,0,0,0,0,0]]
         """Tip je barva zetona."""             
-        self.tip=0
+        self.tip=-1
 
     def vstaviVPolje(self,stolpec):
         """Stevilo stolpca od 0-6."""
@@ -21,6 +21,8 @@ class Igra():
         while vrstica>=0:
             if self.igralnoPolje[vrstica][stolpec]==0:
                 self.igralnoPolje[vrstica][stolpec]=self.tip
+                gui.narisiZeton((stolpec+1)*50+25,vrstica*50+25,self.tip)
+                self.stanjeIgre()
                 break
             else: vrstica-=1
 
@@ -68,7 +70,7 @@ class Igra():
         for kombinacija in kombinacije:
             tip=kombinacija[0]
             if len(list(set(kombinacija)))==1 and tip!=0:
-                print("Zmaga!")
+                gui.napis.set("Zmagal je ORDER!")
 
 
 
@@ -182,13 +184,36 @@ class MiniMax():
                 najboljsaPoteza[1]=-1
             self.razveljaviPotezo(polje,i)
         return  najboljsaPoteza
+
+    def najboljsaPotezaC(self,polje,globina,order=False):
+        najnizjaVrednost=10000000000000000
+        najboljsaPoteza=[-5,0]
+        for i in self.veljavnePoteze(polje):
+            #poskusi z rdecim zetonom
+            self.vstaviVPolje(polje,i,1)
+            vrednost=self.minimax(polje,globina,order)
+            if vrednost<najnizjaVrednost:
+                najnizjaVrednost=vrednost
+                najboljsaPoteza[0]=i
+                najboljsaPoteza[1]=1
+            self.razveljaviPotezo(polje,i)
+            #poskusi z modrim zetonom
+            self.vstaviVPolje(polje,i,-1)
+            vrednost=self.minimax(polje,globina,order)
+            if vrednost<najnizjaVrednost:
+                najboljsaPoteza[0]=i
+                najboljsaPoteza[1]=-1
+            self.razveljaviPotezo(polje,i)
+        return  najboljsaPoteza
+    
+
     
     #ta je tle za testiranje 
-    def odigraj(self,polje,order=True):
-        najboljsaPoteza=self.najboljsaPoteza(polje,2,order)
-        self.vstaviVPolje(polje,najboljsaPoteza[0],najboljsaPoteza[1])
-        for i in range(6):
-            print(polje[i])
+    def odigraj(self):
+        najboljsaPoteza=self.najboljsaPoteza(igra.igralnoPolje,2)
+        igra.tip=najboljsaPoteza[1]
+        igra.vstaviVPolje(najboljsaPoteza[0])
+
 
 
 
@@ -225,9 +250,7 @@ class GUI():
     TAG_OKVIR='okvir'
     
     def __init__(self,master):
-        
-        #privzeta velikost polja
-        
+
 
         #Glavni menu
         menu = tk.Menu(master)
@@ -240,7 +263,7 @@ class GUI():
         menu.add_cascade(label="Uredi", menu=menu_uredi)
 
         #podmenu za izbiro igre
-        menu_igra.add_command(label="Igraj proti prijatelju")
+        menu_igra.add_command(label="Igraj proti prijatelju",command=self.novaIgra)
         menu_igra.add_command(label="Igraj kot Order")
         menu_igra.add_command(label="Igraj kot Chaos")
         menu_igra.add_command(label="Simulacija igre",command=lambda:self.narisiZeton(250,250,2))
@@ -253,14 +276,45 @@ class GUI():
 
 
         #Stanje igre(kdo je na vrsti, kdo je zmagal,...)
-        self.napis = tk.StringVar(master, value="Mi smo zmagali")
+        self.napis = tk.StringVar(master, value="Chaos na vrsti")
         tk.Label(master, textvariable=self.napis).grid(row=0, column=0)
 
         #Igralno območje
         self.plosca = tk.Canvas(master, width=10*GUI.VelikostPolja, height=7*GUI.VelikostPolja)
+        self.plosca.bind("<Button-1>",self.odigraj)
         self.plosca.grid(row=1,column=0)
         self.narisiCrte()
+        
+        
 
+        #zetoni
+        self.moder=tk.PhotoImage(file="moder_zeton.gif")
+        self.rdec=tk.PhotoImage(file="rdec_zeton.gif")
+        self.plosca.create_image(450,150,image=self.rdec)
+       
+
+
+    def odigraj(self,event):
+        j=event.x//50
+        if j-1 in mini.veljavnePoteze(igra.igralnoPolje):
+                igra.vstaviVPolje(j-1)
+                self.napis.set("Računalnik razmišlja!")
+                self.plosca.after(100,mini.odigraj)
+                self.narisiTip(igra.tip)
+        else:
+            if igra.tip==1:
+                igra.tip=-1
+                self.narisiTip(-1)
+            elif igra.tip==-1:
+                igra.tip=1
+                self.narisiTip(1)
+        
+                
+                    
+
+    
+    
+    
     def narisiCrte(self):
         """Narise crte na igralnem obmocju"""
         #self.plosca.delete(Gui.TAG_OKVIR) ali je to sploh potrebno?
@@ -282,22 +336,43 @@ class GUI():
         self.plosca.create_line(1*d,4*d,8*d,4*d,tag=GUI.TAG_OKVIR)
         self.plosca.create_line(1*d,5*d,8*d,5*d,tag=GUI.TAG_OKVIR)
         self.plosca.create_line(1*d,6*d,8*d,6*d,tag=GUI.TAG_OKVIR)
+       
         
         
         
         
    
-    
-    #self.plosca.create_image(3*d+1/2*d,2*d+0.5*d,image=self.moder)
+    def narisiTip(self,tip):
+        if tip==1:
+            self.plosca.create_image(450,150,image=self.moder)
+        if tip==-1:
+            self.plosca.create_image(450,150,image=self.rdec)
 
     def narisiZeton(self,x,y,tip):
-        moder=tk.PhotoImage(file="moder_zeton.gif")
-        self.plosca.create_image(x,y,image=moder)
+        if tip==1:
+            self.plosca.create_image(x,y,image=self.moder,tag="zeton")
+        if tip==-1:
+            self.plosca.create_image(x,y,image=self.rdec,tag="zeton")
+            
+    def novaIgra(self,t):
+        igra.igralnoPolje=[[0,0,0,0,0,0,0],
+                           [0,0,0,0,0,0,0],
+                           [0,0,0,0,0,0,0],
+                           [0,0,0,0,0,0,0],
+                           [0,0,0,0,0,0,0],
+                           [0,0,0,0,0,0,0]]
+        self.brisi()
+        self.napis.set("Igra order")
+            
+    def brisi(self):
+        self.plosca.delete("zeton")
+
     
     def spremeniVelikost(self,velikost):
         """spremeni velikost polja"""                       
         GUI.VelikostPolja=velikost
         self.narisiCrte()
+    
 
 
         
@@ -307,9 +382,9 @@ class GUI():
 mini=MiniMax()
 
 root=tk.Tk()
-root.title("order and chaos")
+root.title("Order and Chaos")
 
-GUI=GUI(root)
+gui=GUI(root)
 
 igra=Igra()
 
