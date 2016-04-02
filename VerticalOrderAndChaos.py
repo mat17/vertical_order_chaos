@@ -1,7 +1,5 @@
 import tkinter as tk
 import copy
-import time
-
 
 
 class Igra():
@@ -15,6 +13,7 @@ class Igra():
         """Tip je barva zetona."""             
         self.tip=-1
         self.naVrsti="Na vrsti je Order"
+        #ali je igra zakljucena ali ne
         self.konec="Ne"
         #Vrsta igre: 1=clovek clovek, 2= order PC,3= Chaos PC,4=PC PC
         self.vrstaIgre=1
@@ -82,23 +81,28 @@ class Igra():
             if len(list(set(kombinacija)))==1 and tip!=0:
                 gui.napis.set("Zmagal je ORDER!")
                 self.konec="Da"
+                gui.plosca.unbind("<Button-1>")
             
         if len(mini.veljavnePoteze(self.igralnoPolje))==0:
             gui.napis.set("Zmagal je CHAOS !")
             self.konec="Da"
+            
+            
 
 
 
 
-
-class MiniMax():
-
+#veliki mojster iger, gospod Dr. Alfa Bet, tudi poznan kot algoritem alfa beta rezanje
+class AlfaBet():
+    
+    def __init__(self):
+        self.tezavnost=0
     
     def vrednostPogoja(self,kombinacija):
         """poisce vrednost vrstice/diagonale/stolpca, zaenkrat se zelo ogabna verzija"""
         l=len(set(kombinacija))
         if l==1 and 0 not in kombinacija:
-            return 4400000
+            return 440000000000000
         elif l==2 and 0 not in kombinacija:
             return -100000
         elif l==2:
@@ -180,14 +184,14 @@ class MiniMax():
             else: vrstica+=1
             
         
-          
-    def najboljsaPoteza(self,polje,globina,order=True):
+    #najboljsa ptoeza za order      
+    def najboljsaPotezaO(self,polje,globina):
         najvisjaVrednost=-100000000000000
         najboljsaPoteza=[-5,0]
         for i in self.veljavnePoteze(polje):
             #poskusi z rdecim zetonom
             self.vstaviVPolje(polje,i,1)
-            vrednost=self.minimax(polje,globina,order)
+            vrednost=self.alfabet(polje,globina,True)
             if vrednost>najvisjaVrednost:
                 najvisjaVrednost=vrednost
                 najboljsaPoteza[0]=i
@@ -195,20 +199,21 @@ class MiniMax():
             self.razveljaviPotezo(polje,i)
             #poskusi z modrim zetonom
             self.vstaviVPolje(polje,i,-1)
-            vrednost=self.minimax(polje,globina,order)
+            vrednost=self.alfabet(polje,globina,True)
             if vrednost>najvisjaVrednost:
                 najboljsaPoteza[0]=i
                 najboljsaPoteza[1]=-1
             self.razveljaviPotezo(polje,i)
         return  najboljsaPoteza
-
+    
+    #najboljsa poteza za chaos
     def najboljsaPotezaC(self,polje,globina,order=False):
         najnizjaVrednost=10000000000000000
         najboljsaPoteza=[-5,0]
         for i in self.veljavnePoteze(polje):
             #poskusi z rdecim zetonom
             self.vstaviVPolje(polje,i,1)
-            vrednost=self.minimax(polje,globina,order)
+            vrednost=self.alfabet(polje,globina,order)
             if vrednost<najnizjaVrednost:
                 najnizjaVrednost=vrednost
                 najboljsaPoteza[0]=i
@@ -216,7 +221,7 @@ class MiniMax():
             self.razveljaviPotezo(polje,i)
             #poskusi z modrim zetonom
             self.vstaviVPolje(polje,i,-1)
-            vrednost=self.minimax(polje,globina,order)
+            vrednost=self.alfabet(polje,globina,order)
             if vrednost<najnizjaVrednost:
                 najboljsaPoteza[0]=i
                 najboljsaPoteza[1]=-1
@@ -225,32 +230,48 @@ class MiniMax():
     
 
     
-    #minimax poisce najboljso potezo in jo uporabi, pred tem se "zaklene" kanvas da ga ne motimo
-    def odigraj(self):
-        gui.plosca.unbind("<Button-1>")
-        najboljsaPoteza=self.najboljsaPoteza(igra.igralnoPolje,2)
-        igra.tip=najboljsaPoteza[1]
-        igra.vstaviVPolje(najboljsaPoteza[0])
-        gui.narisiTip(igra.tip)
+    #alfabet poisce najboljso potezo in jo uporabi, pred tem se "zaklene" kanvas da ga ne motimo
+    def odigraj(self,order=True):
         if igra.konec=="Ne":
-            gui.plosca.after(20,gui.canvasUnlock)
+            gui.plosca.unbind("<Button-1>")
+            najboljsaPoteza=[]
+            if order:
+                najboljsaPoteza=self.najboljsaPotezaO(igra.igralnoPolje,self.tezavnost)
+            else:
+                najboljsaPoteza=self.najboljsaPotezaC(igra.igralnoPolje,self.tezavnost)
+            igra.tip=najboljsaPoteza[1]
+            igra.vstaviVPolje(najboljsaPoteza[0])
+            gui.narisiTip(igra.tip)
+            if igra.konec=="Ne":
+                gui.plosca.after(20,gui.canvasUnlock)
+                
+    def simulacijaIgre(self,order=True):
+        if igra.konec=="Ne":
+            if order:
+                mini.odigraj(order)
+                gui.plosca.after(100,lambda:self.simulacijaIgre(False))
+            else:
+                mini.odigraj(False)
+                gui.plosca.after(100,lambda:self.simulacijaIgre(True))
 
 
 
 
-
-#bova sla do profesorja da malo pohejta nas spaghetti code :D            
+           
 #za zdej naj bo kot da igra order (zato maxplayer=true)       
-    def minimax(self,veja,globina,maxPlayer=True):
+    def alfabet(self,veja,globina,a=-1000000000,b=1000000000,maxPlayer=True):
         if globina==0 or len(self.veljavnePoteze(veja))==0:
             return self.vrednostPolja(veja)
         elif maxPlayer:
             bestValue=-1000000000
             for i in self.veljavnePoteze(veja):
-                #proba oba zetona
+                #proba oba zetona, deepcopy pa zato da nebi slucajno prijatu Max zelel spreminjat pravega igralnega polja
                 veja1=copy.deepcopy(veja)
                 veja2=copy.deepcopy(veja)
-                bestValue=max(self.minimax(self.vstaviVPolje(veja1,i,1),globina-1,False),self.minimax(self.vstaviVPolje(veja2,i,-1),globina-1,False))
+                bestValue=max(self.alfabet(self.vstaviVPolje(veja1,i,1),globina-1,a,b,False),self.alfabet(self.vstaviVPolje(veja2,i,-1),globina-1,a,b,False),bestValue)
+                a=max(a,bestValue)
+                if b<=a:
+                    break
             return bestValue    
 
         else:
@@ -258,17 +279,21 @@ class MiniMax():
             for i in self.veljavnePoteze(veja):
                 veja1=copy.deepcopy(veja)
                 veja2=copy.deepcopy(veja)
-                bestValue=min(self.minimax(self.vstaviVPolje(veja1,i,1),globina-1,True),self.minimax(self.vstaviVPolje(veja2,i,-1),globina-1,True))
+                bestValue=min(self.alfabet(self.vstaviVPolje(veja1,i,1),globina-1,a,b,True),self.alfabet(self.vstaviVPolje(veja2,i,-1),globina-1,a,b,True),bestValue)
+                b=min(b,bestValue)
+                if b<=a:
+                    break
             return bestValue    
 
+    def spremeniTezavnost(self,t):
+        self.tezavnost=t
 
 
 
   
 class GUI():
-
+    #Na zalost nisva naredila tega s spremenljivkami (se pa bi moglo dokaj hitro nardit ce bi zetone resizala)
     VelikostPolja=50
-    TAG_OKVIR='okvir'
     
     def __init__(self,master):
 
@@ -280,22 +305,22 @@ class GUI():
         menu_igra = tk.Menu(menu)
         menu.add_cascade(label="Igra", menu=menu_igra)
 
-##        menu_uredi=tk.Menu(menu)
-##        menu.add_cascade(label="Uredi", menu=menu_uredi)
-
         #podmenu za izbiro igre
         menu_igra.add_command(label="Igraj proti prijatelju",command=lambda:self.novaIgra(1))
         menu_igra.add_command(label="Igraj kot Order",command=lambda:self.novaIgra(2))
         menu_igra.add_command(label="Igraj kot Chaos",command=lambda:self.novaIgra(3))
         menu_igra.add_command(label="Simulacija igre",command=lambda:self.novaIgra(4))
-##
-##        #podmenu za urejanje velikosti okna
-##        menu_uredi.add_command(label="Majhno okno",command=lambda:self.spremeniVelikost(15))
-##        menu_uredi.add_command(label="Srednje okno",command=lambda:self.spremeniVelikost(30))
-##        menu_uredi.add_command(label="Veliko okno",command=lambda:self.spremeniVelikost(50))
+
+        menu_tezavnost=tk.Menu(menu)
+        menu.add_cascade(label="Težavnost",menu=menu_tezavnost)
+        #podmenu za tezavnost
+        menu_tezavnost.add_command(label="Zelo lahko",command=lambda:mini.spremeniTezavnost(0))
+        menu_tezavnost.add_command(label="Lahko",command=lambda:mini.spremeniTezavnost(1))
+        menu_tezavnost.add_command(label="Težko",command=lambda:mini.spremeniTezavnost(2))
+        menu_tezavnost.add_command(label="EXTREME",command=lambda:mini.spremeniTezavnost(3))
+        menu_tezavnost.add_command(label="EVEN MORE EXTREME",command=lambda:mini.spremeniTezavnost(4))
         
-
-
+        
         #Stanje igre(kdo je na vrsti, kdo je zmagal,...)
         self.napis = tk.StringVar(master, value="Na vrsti je Order")
         tk.Label(master, textvariable=self.napis).grid(row=0, column=0)
@@ -314,13 +339,18 @@ class GUI():
         self.plosca.create_image(9*self.VelikostPolja,3*self.VelikostPolja,image=self.rdec)
        
 
-
+    #vstavi zeton v polje, na to pa da racunalniku potezo (ce je ta v igri)
     def odigraj(self,event):
         j=event.x//50
         if j-1 in mini.veljavnePoteze(igra.igralnoPolje):
                 igra.vstaviVPolje(j-1)
-                if igra.vrstaIgre==2 or igra.vrstaIgre==3:
-                    self.plosca.after(100,mini.odigraj)
+                t=igra.vrstaIgre
+                if t==2 or t==3:
+                    if t==2:
+                        self.plosca.after(100,lambda:mini.odigraj(False))
+                    else:
+                        self.plosca.after(100,lambda:mini.odigraj(True))
+
         else:
             if igra.tip==1:
                 igra.tip=-1
@@ -330,7 +360,7 @@ class GUI():
                 self.narisiTip(1)
         
         
-                
+    #odklene kanvas ko racunalnik odigra            
     def canvasUnlock(self):
         self.plosca.bind("<Button-1>",self.odigraj)
 
@@ -339,25 +369,23 @@ class GUI():
     
     def narisiCrte(self):
         """Narise crte na igralnem obmocju"""
-        #self.plosca.delete(Gui.TAG_OKVIR) ali je to sploh potrebno?
         d=self.VelikostPolja
-        #navpicne crte 
-        self.plosca.create_line(1*d,0*d,1*d,6*d,tag=GUI.TAG_OKVIR)
-        self.plosca.create_line(2*d,0*d,2*d,6*d,tag=GUI.TAG_OKVIR)
-        self.plosca.create_line(3*d,0*d,3*d,6*d,tag=GUI.TAG_OKVIR)
-        self.plosca.create_line(4*d,0*d,4*d,6*d,tag=GUI.TAG_OKVIR)
-        self.plosca.create_line(5*d,0*d,5*d,6*d,tag=GUI.TAG_OKVIR)
-        self.plosca.create_line(6*d,0*d,6*d,6*d,tag=GUI.TAG_OKVIR)
-        self.plosca.create_line(7*d,0*d,7*d,6*d,tag=GUI.TAG_OKVIR)
-        self.plosca.create_line(8*d,0*d,8*d,6*d,tag=GUI.TAG_OKVIR)
+        self.plosca.create_line(1*d,0*d,1*d,6*d)
+        self.plosca.create_line(2*d,0*d,2*d,6*d)
+        self.plosca.create_line(3*d,0*d,3*d,6*d)
+        self.plosca.create_line(4*d,0*d,4*d,6*d)
+        self.plosca.create_line(5*d,0*d,5*d,6*d)
+        self.plosca.create_line(6*d,0*d,6*d,6*d)
+        self.plosca.create_line(7*d,0*d,7*d,6*d)
+        self.plosca.create_line(8*d,0*d,8*d,6*d)
         #vodoravne crte
-        self.plosca.create_line(1*d,0*d,8*d,0*d,tag=GUI.TAG_OKVIR)
-        self.plosca.create_line(1*d,1*d,8*d,1*d,tag=GUI.TAG_OKVIR)
-        self.plosca.create_line(1*d,2*d,8*d,2*d,tag=GUI.TAG_OKVIR)
-        self.plosca.create_line(1*d,3*d,8*d,3*d,tag=GUI.TAG_OKVIR)
-        self.plosca.create_line(1*d,4*d,8*d,4*d,tag=GUI.TAG_OKVIR)
-        self.plosca.create_line(1*d,5*d,8*d,5*d,tag=GUI.TAG_OKVIR)
-        self.plosca.create_line(1*d,6*d,8*d,6*d,tag=GUI.TAG_OKVIR)
+        self.plosca.create_line(1*d,0*d,8*d,0*d)
+        self.plosca.create_line(1*d,1*d,8*d,1*d)
+        self.plosca.create_line(1*d,2*d,8*d,2*d)
+        self.plosca.create_line(1*d,3*d,8*d,3*d)
+        self.plosca.create_line(1*d,4*d,8*d,4*d)
+        self.plosca.create_line(1*d,5*d,8*d,5*d)
+        self.plosca.create_line(1*d,6*d,8*d,6*d)
        
         
         
@@ -385,28 +413,26 @@ class GUI():
                            [0,0,0,0,0,0,0],
                            [0,0,0,0,0,0,0]]
         self.brisi()
-        self.napis.set("Igra order")
+        self.napis.set("Na vrsti je Order")
         igra.vrstaIgre=t
         igra.konec="Ne"
         self.plosca.bind("<Button-1>",self.odigraj)
+        if t==3:
+            mini.odigraj()
+        if t==4:
+            mini.simulacijaIgre()
 
             
     def brisi(self):
         self.plosca.delete("zeton")
 
     
-    def spremeniVelikost(self,velikost):
-        """spremeni velikost polja"""                       
-        GUI.VelikostPolja=velikost
-        self.narisiCrte()
-    
+
 
 
         
-        
-    
 
-mini=MiniMax()
+mini=AlfaBet()
 
 root=tk.Tk()
 root.title("Order and Chaos")
