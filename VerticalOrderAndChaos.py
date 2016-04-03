@@ -352,7 +352,7 @@ class GUI():
 
         #podmenu pomoc, kjer najdemo pravila igre
         pomoc_menu = tk.Menu(menu)
-        menu.add_cascade(label="Pomoc", menu=pomoc_menu)
+        menu.add_cascade(label="Pomoč", menu=pomoc_menu)
         pomoc_menu.add_command(label="Pravila igre", command=lambda:self.pokaziPravila())
 
         #Igralno območje
