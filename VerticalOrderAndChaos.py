@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import N,S,W,E,SW
 import copy
 
 
@@ -75,7 +76,7 @@ class Igra():
             kombinacijeVrstice+=[v[:5]]+[v[1:6]]+[v[2:]]
 
         kombinacije=kombinacijeDiagonale+kombinacijeStolpci+kombinacijeVrstice
-
+        #kombinacije=kombinacijeVrstice
         for kombinacija in kombinacije:
             tip=kombinacija[0]
             if len(list(set(kombinacija)))==1 and tip!=0:
@@ -102,15 +103,16 @@ class AlfaBet():
         """poisce vrednost vrstice/diagonale/stolpca, zaenkrat se zelo ogabna verzija"""
         l=len(set(kombinacija))
         if l==1 and 0 not in kombinacija:
-            return 440000000000000
+            return 44000000
         elif l==2 and 0 not in kombinacija:
-            return -100000
+            return -10000000
         elif l==2:
-            return 10*abs(sum(kombinacija))
+           return 100*abs(sum(kombinacija))
         elif l==3:
             return -100000
-        else:
-            return 0
+        elif l==1 and 0 in kombinacija:
+            return 50
+
         
     def vstaviVPolje(self,polje,stolpec,tip):
         """Stevilo stolpca od 0-6."""
@@ -157,14 +159,15 @@ class AlfaBet():
         kombinacijeStolpci=[]
         for s in stolpci:
             kombinacijeStolpci+=[s[:5]]+[s[1:]]
-        
+            
+
         vrstice=[polje[i] for i in range(6)]
         kombinacijeVrstice=[]
         for v in vrstice:
             kombinacijeVrstice+=[v[:5]]+[v[1:6]]+[v[2:]]
         
         kombinacije=kombinacijeDiagonale+kombinacijeStolpci+kombinacijeVrstice
-        
+        #print(sum([self.vrednostPogoja(kombinacija) for kombinacija in kombinacije]))
         return sum([self.vrednostPogoja(kombinacija) for kombinacija in kombinacije])
 
 
@@ -223,9 +226,11 @@ class AlfaBet():
             self.vstaviVPolje(polje,i,-1)
             vrednost=self.alfabet(polje,globina,order)
             if vrednost<najnizjaVrednost:
+                najnizjaVrednost=vrednost
                 najboljsaPoteza[0]=i
                 najboljsaPoteza[1]=-1
             self.razveljaviPotezo(polje,i)
+
         return  najboljsaPoteza
     
 
@@ -245,8 +250,9 @@ class AlfaBet():
             if igra.konec=="Ne":
                 gui.plosca.after(20,gui.canvasUnlock)
                 
+    #Simulira igro med dvema racunalnikoma            
     def simulacijaIgre(self,order=True):
-        if igra.konec=="Ne":
+        if igra.konec=="Ne" and igra.vrstaIgre==4:
             if order:
                 mini.odigraj(order)
                 gui.plosca.after(100,lambda:self.simulacijaIgre(False))
@@ -258,7 +264,7 @@ class AlfaBet():
 
 
            
-#za zdej naj bo kot da igra order (zato maxplayer=true)       
+     
     def alfabet(self,veja,globina,a=-1000000000,b=1000000000,maxPlayer=True):
         if globina==0 or len(self.veljavnePoteze(veja))==0:
             return self.vrednostPolja(veja)
@@ -284,9 +290,11 @@ class AlfaBet():
                 if b<=a:
                     break
             return bestValue    
-
+    
     def spremeniTezavnost(self,t):
+        """Spremeni globino alfabeta"""
         self.tezavnost=t
+        
 
 
 
@@ -314,30 +322,75 @@ class GUI():
         menu_tezavnost=tk.Menu(menu)
         menu.add_cascade(label="Težavnost",menu=menu_tezavnost)
         #podmenu za tezavnost
-        menu_tezavnost.add_command(label="Zelo lahko",command=lambda:mini.spremeniTezavnost(0))
-        menu_tezavnost.add_command(label="Lahko",command=lambda:mini.spremeniTezavnost(1))
-        menu_tezavnost.add_command(label="Težko",command=lambda:mini.spremeniTezavnost(2))
-        menu_tezavnost.add_command(label="EXTREME",command=lambda:mini.spremeniTezavnost(3))
-        menu_tezavnost.add_command(label="EVEN MORE EXTREME",command=lambda:mini.spremeniTezavnost(4))
+        menu_tezavnost.add_command(label="Zelo lahko",command=lambda:self.spremeniTezavnost(0))
+        menu_tezavnost.add_command(label="Lahko",command=lambda:self.spremeniTezavnost(1))
+        menu_tezavnost.add_command(label="Težko",command=lambda:self.spremeniTezavnost(2))
+        menu_tezavnost.add_command(label="EXTREME",command=lambda:self.spremeniTezavnost(3))
+        menu_tezavnost.add_command(label="EVEN MORE EXTREME",command=lambda:self.spremeniTezavnost(4))
         
         
-        #Stanje igre(kdo je na vrsti, kdo je zmagal,...)
-        self.napis = tk.StringVar(master, value="Na vrsti je Order")
-        tk.Label(master, textvariable=self.napis).grid(row=0, column=0)
-
         #Igralno območje
         self.plosca = tk.Canvas(master, width=10*GUI.VelikostPolja, height=7*GUI.VelikostPolja)
         self.plosca.bind("<Button-1>",self.odigraj)
-        self.plosca.grid(row=1,column=0)
+        self.plosca.grid(row=2,column=0)
         self.narisiCrte()
-        
-        
+
+        #Stanje igre(kdo je na vrsti, kdo je zmagal,...)
+        self.napis = tk.StringVar(master, value="Na vrsti je Order")
+        self.napisTezavnost = tk.StringVar(master,value="Težavnost: " + self.kakoLahko(mini.tezavnost))
+        tk.Label(master, textvariable=self.napis).grid(row=0,column=0)
+        tk.Label(master,textvariable=self.napisTezavnost).grid(row=3,column=0,sticky=SW)
 
         #zetoni
         self.moder=tk.PhotoImage(file="moder_zeton.gif")
         self.rdec=tk.PhotoImage(file="rdec_zeton.gif")
         self.plosca.create_image(9*self.VelikostPolja,3*self.VelikostPolja,image=self.rdec)
+
+    def narisiCrte(self):
+        """Narise crte na igralnem obmocju"""
+        d=self.VelikostPolja
+        self.plosca.create_line(1*d,0*d,1*d,6*d)
+        self.plosca.create_line(2*d,0*d,2*d,6*d)
+        self.plosca.create_line(3*d,0*d,3*d,6*d)
+        self.plosca.create_line(4*d,0*d,4*d,6*d)
+        self.plosca.create_line(5*d,0*d,5*d,6*d)
+        self.plosca.create_line(6*d,0*d,6*d,6*d)
+        self.plosca.create_line(7*d,0*d,7*d,6*d)
+        self.plosca.create_line(8*d,0*d,8*d,6*d)
+        #vodoravne crte
+        self.plosca.create_line(1*d,0*d,8*d,0*d)
+        self.plosca.create_line(1*d,1*d,8*d,1*d)
+        self.plosca.create_line(1*d,2*d,8*d,2*d)
+        self.plosca.create_line(1*d,3*d,8*d,3*d)
+        self.plosca.create_line(1*d,4*d,8*d,4*d)
+        self.plosca.create_line(1*d,5*d,8*d,5*d)
+        self.plosca.create_line(1*d,6*d,8*d,6*d)
+               
        
+
+    
+    def kakoLahko(self,t):
+        """ustvari string za tezavnost"""
+        if t==0:
+            return "Zelo lahko"
+        elif t==1:
+            return "Lahko"
+        elif t==2:
+            return "Težko"
+        elif t==3:
+            return "EXTREME"
+        elif t==4:
+            return "EVEN MORE EXTREME"
+        
+    
+    def spremeniTezavnost(self,t):
+        """Spremeni tezavnost"""
+        #spremeni tezavnost v alfabetu
+        mini.spremeniTezavnost(t)
+        #spremeni napis
+        self.napisTezavnost.set("Težavnost: " + self.kakoLahko(mini.tezavnost))
+
+        
 
     #vstavi zeton v polje, na to pa da racunalniku potezo (ce je ta v igri)
     def odigraj(self,event):
@@ -360,38 +413,10 @@ class GUI():
                 self.narisiTip(1)
         
         
-    #odklene kanvas ko racunalnik odigra            
+    #odklene kanvas          
     def canvasUnlock(self):
         self.plosca.bind("<Button-1>",self.odigraj)
 
-    
-    
-    
-    def narisiCrte(self):
-        """Narise crte na igralnem obmocju"""
-        d=self.VelikostPolja
-        self.plosca.create_line(1*d,0*d,1*d,6*d)
-        self.plosca.create_line(2*d,0*d,2*d,6*d)
-        self.plosca.create_line(3*d,0*d,3*d,6*d)
-        self.plosca.create_line(4*d,0*d,4*d,6*d)
-        self.plosca.create_line(5*d,0*d,5*d,6*d)
-        self.plosca.create_line(6*d,0*d,6*d,6*d)
-        self.plosca.create_line(7*d,0*d,7*d,6*d)
-        self.plosca.create_line(8*d,0*d,8*d,6*d)
-        #vodoravne crte
-        self.plosca.create_line(1*d,0*d,8*d,0*d)
-        self.plosca.create_line(1*d,1*d,8*d,1*d)
-        self.plosca.create_line(1*d,2*d,8*d,2*d)
-        self.plosca.create_line(1*d,3*d,8*d,3*d)
-        self.plosca.create_line(1*d,4*d,8*d,4*d)
-        self.plosca.create_line(1*d,5*d,8*d,5*d)
-        self.plosca.create_line(1*d,6*d,8*d,6*d)
-       
-        
-        
-        
-        
-   
     def narisiTip(self,tip):
         d=self.VelikostPolja
         if tip==1:
@@ -415,6 +440,7 @@ class GUI():
         self.brisi()
         self.napis.set("Na vrsti je Order")
         igra.vrstaIgre=t
+        igra.konec="Da"
         igra.konec="Ne"
         self.plosca.bind("<Button-1>",self.odigraj)
         if t==3:
