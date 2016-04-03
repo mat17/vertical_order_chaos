@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import SW
+from tkinter import SW,S,N
 import copy
 
 
@@ -320,7 +320,9 @@ class GUI():
     VelikostPolja=50
 
     def __init__(self,master):
-
+        
+        self.pomoc= None #tukaj je da lahko program pogleda ce je okno z navodili ze odprto
+        self.master=master
 
         #Glavni menu
         menu = tk.Menu(master)
@@ -345,7 +347,10 @@ class GUI():
         menu_tezavnost.add_command(label="EXTREME",command=lambda:self.spremeniTezavnost(3))
         menu_tezavnost.add_command(label="EVEN MORE EXTREME",command=lambda:self.spremeniTezavnost(4))
 
-
+        #podmenu pomoc, kjer najdemo pravila igre
+        pomoc_menu = tk.Menu(menu)
+        menu.add_cascade(label="Pomoc", menu=pomoc_menu)
+        pomoc_menu.add_command(label="Pravila igre", command=lambda:self.pokaziPravila())
 
         #Igralno območje
         self.plosca = tk.Canvas(master, width=10*GUI.VelikostPolja, height=7*GUI.VelikostPolja)
@@ -363,6 +368,9 @@ class GUI():
         self.moder=tk.PhotoImage(file="moder_zeton.gif")
         self.rdec=tk.PhotoImage(file="rdec_zeton.gif")
         self.plosca.create_image(9*self.VelikostPolja,3*self.VelikostPolja,image=self.rdec)
+
+        #pravila
+        
 
     def narisiCrte(self):
         """Narise crte na igralnem obmocju"""
@@ -387,7 +395,32 @@ class GUI():
 
 
 
-
+    def pokaziPravila(self):
+        """napise oziroma zapre pravila"""
+        if self.pomoc==None:
+            self.pravila = tk.Label(self.master, text=
+                            '''Pravila:
+Vertical order and chaos je igra za dva igralca, ki se igra na polju
+velikosti 7x5, v katerega igralca vstavljata žetone rdeče ali modre barve.
+Igralec, ki je na potezi, lahko uporabi en žeton katerekoli barve.
+Prvi igralec, imenujmo ga Order, vedno začne igro. Cilj igralca order
+je postaviti 5 žetonov enake barve v vrsto, stolpec ali diagonalo.
+Cilj drugega igralca, imenujmo ga Chaos, je zapolnitev igralnega polja
+na tak način, da v nobeni vrstici, diagonali ali stolpcu ne najdemo
+postavljenih petih zaporednih žetonov enake barve.''')
+            self.pravila.grid(row=2,column=3,sticky=N+S)
+            self.pomoc="Imamo odprta navodila"
+            self.pravila.bind("<Button-1>",self.pravilaKlik)
+        else:
+            self.pomoc=None
+            self.pravila.destroy()
+            
+        
+    def pravilaKlik(self,event):
+        """zapre pravila"""
+        self.pomoc=None
+        self.pravila.destroy()
+    
     def kakoLahko(self,t):
         """ustvari string za tezavnost"""
         if t==0:
@@ -477,6 +510,7 @@ class GUI():
 
     def brisi(self):
         self.plosca.delete("zeton")
+        
 
 
 
