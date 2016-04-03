@@ -84,8 +84,9 @@ class Igra():
                 gui.plosca.unbind("<Button-1>")
 
         if len(mini.veljavnePoteze(self.igralnoPolje))==0:
-            gui.napis.set("Zmagal je CHAOS !")
-            self.konec="Da"
+            if self.konec!="Da":
+                gui.napis.set("Zmagal je CHAOS !")
+                self.konec="Da"
 
     def spremeniNaVrsti(self):
         """spremeni kdo je na vrsti"""
