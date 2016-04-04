@@ -19,7 +19,12 @@ class Igra():
         self.naVrsti="Na vrsti je Order"
         #ali je igra zakljucena ali ne
         self.konec="Ne"
-        #Vrsta igre: 1=clovek clovek, 2= order PC,3= Chaos PC,4=PC PC
+        #Vrsta igre:
+        #  Order   Chaos
+        #1 clovek  clovek
+        #2 clovek  PC
+        #3 PC      clovek
+        #4 PC      PC
         self.vrstaIgre=1
 
     def vstaviVPolje(self,stolpec):
@@ -84,7 +89,7 @@ class Igra():
                 self.konec="Da"
                 gui.plosca.unbind("<Button-1>")
 
-        if len(mini.veljavnePoteze(self.igralnoPolje))==0:
+        if len(self.veljavnePoteze(self.igralnoPolje))==0:
             if self.konec!="Da":
                 gui.napis.set("Zmagal je CHAOS !")
                 self.konec="Da"
@@ -98,6 +103,13 @@ class Igra():
             self.naVrsti="Na vrsti je Order"
             gui.napis.set(self.naVrsti)
 
+    def veljavnePoteze(self,polje):
+        """naredu seznam veljavnih potez"""
+        veljavne=[]
+        for i in range(7):
+            if polje[0][i]==0:
+                veljavne.append(i)
+        return veljavne
 
 
 ######################################################################################
@@ -251,29 +263,29 @@ class AlfaBet():
 
     def odigraj(self,order=True):
         """Alfabet poisce najboljso potezo in jo odigra"""
-        if igra.konec=="Ne":
+        if gui.igra.konec=="Ne":
             #najprej zaklene kanvas da ga ne motimo ko racuna, ce ne postane zivcen
             gui.plosca.unbind("<Button-1>")
             najboljsaPoteza=[]
             if order:
-                najboljsaPoteza=self.najboljsaPotezaO(igra.igralnoPolje,self.tezavnost)
+                najboljsaPoteza=self.najboljsaPotezaO(gui.igra.igralnoPolje,self.tezavnost)
             else:
-                najboljsaPoteza=self.najboljsaPotezaC(igra.igralnoPolje,self.tezavnost)
-            igra.tip=najboljsaPoteza[1]
-            igra.vstaviVPolje(najboljsaPoteza[0])
-            gui.narisiTip(igra.tip)
-            if igra.konec=="Ne":
+                najboljsaPoteza=self.najboljsaPotezaC(gui.igra.igralnoPolje,self.tezavnost)
+            gui.igra.tip=najboljsaPoteza[1]
+            gui.igra.vstaviVPolje(najboljsaPoteza[0])
+            gui.narisiTip(gui.igra.tip)
+            if gui.igra.konec=="Ne":
                 #ce igre ni konec naj se kanvas odpre da odigramo svojo potezo
                 gui.plosca.after(20,gui.canvasUnlock)
 
     def simulacijaIgre(self,order=True):
         """simulira igro med dvema racunalnikoma"""
-        if igra.konec=="Ne" and igra.vrstaIgre==4:
+        if gui.igra.konec=="Ne" and gui.igra.vrstaIgre==4:
             if order:
-                mini.odigraj(order)
+                self.odigraj(order)
                 gui.plosca.after(100,lambda:self.simulacijaIgre(False))
             else:
-                mini.odigraj(False)
+                self.odigraj(False)
                 gui.plosca.after(100,lambda:self.simulacijaIgre(True))
 
 
@@ -326,6 +338,8 @@ class GUI():
         
         self.pomoc= None #tukaj je da lahko program pogleda ce je okno z navodili ze odprto
         self.master=master
+        self.igra=Igra()
+        self.alfabet=AlfaBet()
 
         #Glavni menu
         menu = tk.Menu(master)
@@ -363,7 +377,7 @@ class GUI():
 
         #Stanje igre(kdo je na vrsti, kdo je zmagal,...)
         self.napis = tk.StringVar(master, value="Na vrsti je Order")
-        self.napisTezavnost = tk.StringVar(master,value="Težavnost: " + self.kakoLahko(mini.tezavnost))
+        self.napisTezavnost = tk.StringVar(master,value="Težavnost: " + self.kakoLahko(self.alfabet.tezavnost))
         tk.Label(master, textvariable=self.napis).grid(row=0,column=0)
         tk.Label(master,textvariable=self.napisTezavnost).grid(row=3,column=0,sticky=SW)
 
@@ -441,31 +455,31 @@ postavljenih petih zaporednih žetonov enake barve.''')
     def spremeniTezavnost(self,t):
         """Spremeni tezavnost"""
         #spremeni tezavnost v alfabetu
-        mini.spremeniTezavnost(t)
+        self.alfabet.spremeniTezavnost(t)
         #spremeni napis
-        self.napisTezavnost.set("Težavnost: " + self.kakoLahko(mini.tezavnost))
+        self.napisTezavnost.set("Težavnost: " + self.kakoLahko(self.alfabet.tezavnost))
 
 
 
     #vstavi zeton v polje, na to pa da racunalniku potezo (ce je ta v igri)
     def odigraj(self,event):
         j=event.x//50
-        if j-1 in mini.veljavnePoteze(igra.igralnoPolje):
-                igra.vstaviVPolje(j-1)
-                t=igra.vrstaIgre
+        if j-1 in self.alfabet.veljavnePoteze(self.igra.igralnoPolje):
+                self.igra.vstaviVPolje(j-1)
+                t=self.igra.vrstaIgre
                 if t==2 or t==3:
                     if t==2:
-                        self.plosca.after(100,lambda:mini.odigraj(False))
+                        self.plosca.after(100,lambda:self.alfabet.odigraj(False))
 
                     else:
-                        self.plosca.after(100,lambda:mini.odigraj(True))
+                        self.plosca.after(100,lambda:self.alfabet.odigraj(True))
 
         else:
-            if igra.tip==1:
-                igra.tip=-1
+            if self.igra.tip==1:
+                self.igra.tip=-1
                 self.narisiTip(-1)
-            elif igra.tip==-1:
-                igra.tip=1
+            elif self.igra.tip==-1:
+                self.igra.tip=1
                 self.narisiTip(1)
 
 
@@ -491,7 +505,7 @@ postavljenih petih zaporednih žetonov enake barve.''')
     def novaIgra(self,t):
         """zacne novo igro"""
         #resetira igralno polje
-        igra.igralnoPolje=[[0,0,0,0,0,0,0],
+        self.igra.igralnoPolje=[[0,0,0,0,0,0,0],
                            [0,0,0,0,0,0,0],
                            [0,0,0,0,0,0,0],
                            [0,0,0,0,0,0,0],
@@ -500,15 +514,15 @@ postavljenih petih zaporednih žetonov enake barve.''')
         #izbrise zetone
         self.brisi()
         self.napis.set("Na vrsti je Order") #vedno order zacne
-        igra.naVrsti="Na vrsti je Order"
+        self.igra.naVrsti="Na vrsti je Order"
         #nastavi vrsto igre
-        igra.vrstaIgre=t
-        igra.konec="Ne"
+        self.igra.vrstaIgre=t
+        self.igra.konec="Ne"
         self.plosca.bind("<Button-1>",self.odigraj)
         if t==3:
-            self.plosca.after(50,mini.odigraj())
+            self.plosca.after(50,self.alfabet.odigraj())
         if t==4:
-            mini.simulacijaIgre()
+            self.alfabet.simulacijaIgre()
 
 
     def brisi(self):
@@ -522,14 +536,13 @@ postavljenih petih zaporednih žetonov enake barve.''')
 ## Glavni program
 
 
-mini=AlfaBet()
+
 
 root=tk.Tk()
 root.title("Order and Chaos")
 
 gui=GUI(root)
 
-igra=Igra()
 
 root.mainloop()
 
